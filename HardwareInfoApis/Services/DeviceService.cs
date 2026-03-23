@@ -3,7 +3,6 @@ using HardwareInfoApis.Api.Models.Api;
 using HardwareInfoApis.Api.Models.Api.Responses;
 using HardwareInfoApis.Api.Models.Entities;
 using HardwareInfoApis.Api.Services.Interfaces;
-using HardwareInfoApis.Configuration;
 using HardwareInfoApis.Models.Api;
 using HardwareInfoApis.Models.Api.Requests;
 using HardwareInfoApis.Models.Api.Responses;
@@ -11,6 +10,7 @@ using HardwareInfoApis.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using HardwareInfoApis.Api.Models; // <-- Add this line if ApiSettings is defined here
 
 
 namespace HardwareInfoApis.Api.Services
@@ -156,7 +156,7 @@ namespace HardwareInfoApis.Api.Services
                 {
                     DeviceFingerprint = request.DeviceFingerprint,
                     DeviceName = request.HardwareInfo?.OperatingSystem?.MachineName ?? "Unknown Device",
-                    HardwareInfoJson = JsonSerializer.Serialize(request.HardwareInfo),
+                    HardwareInfoJson = JsonConvert.SerializeObject(request.HardwareInfo),
 
                     // Indexable hardware fields
                     ProcessorId = request.HardwareInfo?.Processor?.ProcessorId,

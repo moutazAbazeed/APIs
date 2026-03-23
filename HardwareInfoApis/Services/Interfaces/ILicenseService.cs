@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
     using HardwareInfoApis.Api.Models.Entities;
     using HardwareInfoApis.Models.Api.Responses;
-    using HardwareInfoApis.Models.Entities;
 
     /// <summary>
     /// Service interface for license management operations

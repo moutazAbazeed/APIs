@@ -3,6 +3,8 @@
     using HardwareInfoApis.Api.Data;
     using HardwareInfoApis.Api.Models.Entities;
     using HardwareInfoApis.Data;
+    using HardwareInfoApis.Models.Api;
+    using HardwareInfoApis.Models.Api.Responses;
     using HardwareInfoApis.Services.Interfaces;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
@@ -103,7 +105,8 @@
                 var isInGracePeriod = false;
                 DateTime? gracePeriodEndsAt = null;
 
-                if (isExpired && _licenseSettings.EnableGracePeriod)
+                if (isExpired && _licenseSettings.EnableGracePeriod
+                    )
                 {
                     gracePeriodEndsAt = license.ExpiresAt.Value.AddDays(_licenseSettings.GracePeriodDays);
                     isInGracePeriod = now < gracePeriodEndsAt;
@@ -326,7 +329,7 @@
                 }
 
                 // Activate license on device
-                device.LicenseKey = license.LicenseKey;  // Foreign key to License
+                device.License.LicenseKey = license.LicenseKey;  // Foreign key to License
                 license.CurrentDeviceCount++;
                 license.ActivatedAt ??= DateTime.UtcNow;
 
@@ -372,7 +375,7 @@
                 return false;
 
             // Remove license reference from device
-            device.LicenseKey = null;
+            device.LicenseId = null;
             license.CurrentDeviceCount = Math.Max(0, license.CurrentDeviceCount - 1);
 
             await _context.SaveChangesAsync(ct);
@@ -591,8 +594,8 @@
             }
 
             // Perform transfer
-            fromDevice.LicenseKey = null;
-            toDevice.LicenseKey = license.LicenseKey;
+            fromDevice.License.LicenseKey = null;
+            toDevice.License.LicenseKey = license.LicenseKey;
 
             await _context.SaveChangesAsync(ct);
 

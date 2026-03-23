@@ -1,4 +1,5 @@
 ﻿using HardwareInfoApis.Models.Shared;
+using HardwareInfoApis.Api.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
 using System;
@@ -11,13 +12,7 @@ namespace HardwareInfoApis.Api.Services
     /// <summary>
     /// Service for validating and normalizing device fingerprints
     /// </summary>
-    public interface IFingerprintService
-    {
-        bool IsValidFingerprint(string fingerprint);
-        string NormalizeFingerprint(string fingerprint);
-        Task<string> ComputeFingerprintAsync(DeviceHardwareInfo hardware);
-    }
-
+    // Implement the interface defined in Api.Services.Interfaces
     public class FingerprintService : IFingerprintService
     {
         private readonly ILogger<FingerprintService> _logger;

@@ -42,7 +42,6 @@ namespace HardwareInfoApis.Api.Models.Api.Responses
         {
             return new ApiResponse
             {
-                
                 Message = message,
             };
         }
@@ -56,4 +55,4 @@ namespace HardwareInfoApis.Api.Models.Api.Responses
             };
         }
     }
-}
+}}

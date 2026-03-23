@@ -5,10 +5,13 @@ using HardwareInfoApis.Models.Api.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using HardwareInfoApis.Api.Data;
+using HardwareInfoApis.Api.Models.Entities;
 
 namespace HardwareInfoApis.Api.Controllers
 {
@@ -50,7 +53,7 @@ namespace HardwareInfoApis.Api.Controllers
             CancellationToken ct = default)
         {
             if (request == null)
-                return BadRequest(ApiResponse<object>.Error("Request body is required",Models.Api.ApiErrorCode.InvalidRequest));
+                return BadRequest(ApiResponse<object>.Error("Request body is required", Models.Api.ApiErrorCode.InvalidRequest));
 
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             _logger.LogInformation("CheckDevice request from {ClientIp} for fingerprint: {Fingerprint}",
@@ -75,7 +78,7 @@ namespace HardwareInfoApis.Api.Controllers
             CancellationToken ct = default)
         {
             if (request == null)
-                return BadRequest(ApiResponse<object>.Error("Request body is required",Models.Api.ApiErrorCode.InvalidRequest));
+                return BadRequest(ApiResponse<object>.Error("Request body is required", Models.Api.ApiErrorCode.InvalidRequest));
 
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             _logger.LogInformation("RegisterDevice request from {ClientIp} for fingerprint: {Fingerprint}",
@@ -101,9 +104,69 @@ namespace HardwareInfoApis.Api.Controllers
             [FromRoute] string id,
             CancellationToken ct = default)
         {
-            // Implementation for admin device lookup
-            // ...
-            return NotImplementedException;
+            try
+            {
+                // Resolve DbContext from DI to avoid changing controller ctor
+                var services = HttpContext?.RequestServices;
+                if (services == null)
+                {
+                    _logger.LogError("RequestServices unavailable when retrieving device {Id}", id);
+                    return StatusCode(500, ApiResponse<DeviceDto>.Error("Internal server error", Models.Api.ApiErrorCode.ServerError));
+                }
+
+                var db = services.GetService(typeof(ApplicationDbContext)) as ApplicationDbContext;
+                if (db == null)
+                {
+                    _logger.LogError("ApplicationDbContext not registered when retrieving device {Id}", id);
+                    return StatusCode(500, ApiResponse<DeviceDto>.Error("Internal server error", Models.Api.ApiErrorCode.ServerError));
+                }
+
+                Device? device = null;
+
+                // Try parse as numeric database id first
+                if (int.TryParse(id, out var numericId))
+                {
+                    device = await db.Devices
+                        .Include(d => d.License)
+                        .FirstOrDefaultAsync(d => d.Id == numericId, ct);
+                }
+                else
+                {
+                    // Fallback: treat id as device fingerprint
+                    device = await db.Devices
+                        .Include(d => d.License)
+                        .FirstOrDefaultAsync(d => d.DeviceFingerprint == id, ct);
+                }
+
+                if (device == null)
+                {
+                    return NotFound();
+                }
+
+                var dto = new DeviceDto
+                {
+                    Id = device.Id,
+                    DeviceFingerprint = device.DeviceFingerprint,
+                    DeviceName = device.DeviceName,
+                    RegisteredAt = device.RegisteredAt,
+                    LastSeenAt = device.LastSeenAt,
+                    LicenseStatus = device.License == null ? "None" :
+                                    device.License.IsRevoked ? "Revoked" :
+                                    device.License.IsActive ? "Active" : "Inactive"
+                };
+
+                return Ok(ApiResponse<DeviceDto>.SuccessResponse(dto, "Device found"));
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("GetDevice cancelled for id: {Id}", id);
+                return StatusCode(499);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device: {Id}", id);
+                return StatusCode(500, ApiResponse<DeviceDto>.Error("Internal server error", Models.Api.ApiErrorCode.ServerError));
+            }
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 ﻿using HardwareInfoApis.Api.Data;
+using HardwareInfoApis.Api.Middleware;
 using HardwareInfoApis.Api.Services;
 using HardwareInfoApis.Api.Services.Interfaces;
-using HardwareInfoApis.Configuration;
 using HardwareInfoApis.Middleware;
 using HardwareInfoApis.Services;
 using HardwareInfoApis.Services.Interfaces;
@@ -33,35 +33,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
-// 🔹 API Settings
-builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
-builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection("LicenseSettings"));
-
-// 🔹 Services
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
-builder.Services.AddScoped<HardwareInfoApis.Api.Services.IFingerprintService, FingerprintService>();
+// Register fingerprint service using the relocated interface namespace
+builder.Services.AddScoped<HardwareInfoApis.Api.Services.Interfaces.IFingerprintService, HardwareInfoApis.Api.Services.FingerprintService>();
 
-// 🔹 Authentication (Optional)
-//builder.Services.AddAuthentication(options =>
-//{
-//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
-    };
-});
 
 // 🔹 Rate Limiting
 builder.Services.AddRateLimiter(options =>
