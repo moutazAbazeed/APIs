@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet package metadata -->
+    <PackageId>HardwareInfoApis.Authorization</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>HardwareInfoApis</Authors>
+    <Description>JWT authentication helpers and token service for HardwareInfoApis.</Description>
+    <PackageTags>jwt;authentication;authorization;hardwareinfoapis</PackageTags>
+    <RepositoryUrl>https://github.com/moutazAbazeed/APIs</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
+  </ItemGroup>
+
+</Project>

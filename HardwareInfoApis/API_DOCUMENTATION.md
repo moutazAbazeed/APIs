@@ -185,7 +185,3 @@ Example `HeartbeatRequest`:
 
 ---
 
-If you want, I can:
-- Generate a full OpenAPI (yaml/json) file from the running app.
-- Commit this documentation to the repo and open a PR.
-- Expand examples for the `DeviceHardwareInfo` model and license endpoints.

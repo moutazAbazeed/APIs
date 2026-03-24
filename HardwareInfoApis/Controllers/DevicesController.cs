@@ -22,13 +22,16 @@ namespace HardwareInfoApis.Api.Controllers
     {
         private readonly IDeviceService _deviceService;
         private readonly ILogger<DevicesController> _logger;
+        private readonly ApplicationDbContext _db;
 
         public DevicesController(
             IDeviceService deviceService,
-            ILogger<DevicesController> logger)
+            ILogger<DevicesController> logger,
+            ApplicationDbContext db)
         {
             _deviceService = deviceService ?? throw new ArgumentNullException(nameof(deviceService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _db = db ?? throw new ArgumentNullException(nameof(db));
         }
 
         /// <summary>
@@ -55,6 +58,9 @@ namespace HardwareInfoApis.Api.Controllers
             if (request == null)
                 return BadRequest(ApiResponse<object>.Error("Request body is required", Models.Api.ApiErrorCode.InvalidRequest));
 
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.Error("Invalid request", Models.Api.ApiErrorCode.InvalidRequest));
+
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             _logger.LogInformation("CheckDevice request from {ClientIp} for fingerprint: {Fingerprint}",
                 clientIp, request.DeviceFingerprint);
@@ -79,6 +85,9 @@ namespace HardwareInfoApis.Api.Controllers
         {
             if (request == null)
                 return BadRequest(ApiResponse<object>.Error("Request body is required", Models.Api.ApiErrorCode.InvalidRequest));
+
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.Error("Invalid request", Models.Api.ApiErrorCode.InvalidRequest));
 
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             _logger.LogInformation("RegisterDevice request from {ClientIp} for fingerprint: {Fingerprint}",
@@ -106,34 +115,19 @@ namespace HardwareInfoApis.Api.Controllers
         {
             try
             {
-                // Resolve DbContext from DI to avoid changing controller ctor
-                var services = HttpContext?.RequestServices;
-                if (services == null)
-                {
-                    _logger.LogError("RequestServices unavailable when retrieving device {Id}", id);
-                    return StatusCode(500, ApiResponse<DeviceDto>.Error("Internal server error", Models.Api.ApiErrorCode.ServerError));
-                }
-
-                var db = services.GetService(typeof(ApplicationDbContext)) as ApplicationDbContext;
-                if (db == null)
-                {
-                    _logger.LogError("ApplicationDbContext not registered when retrieving device {Id}", id);
-                    return StatusCode(500, ApiResponse<DeviceDto>.Error("Internal server error", Models.Api.ApiErrorCode.ServerError));
-                }
-
                 Device? device = null;
 
                 // Try parse as numeric database id first
                 if (int.TryParse(id, out var numericId))
                 {
-                    device = await db.Devices
+                    device = await _db.Devices
                         .Include(d => d.License)
                         .FirstOrDefaultAsync(d => d.Id == numericId, ct);
                 }
                 else
                 {
                     // Fallback: treat id as device fingerprint
-                    device = await db.Devices
+                    device = await _db.Devices
                         .Include(d => d.License)
                         .FirstOrDefaultAsync(d => d.DeviceFingerprint == id, ct);
                 }

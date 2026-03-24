@@ -1,0 +1,37 @@
+@page "/register"
+@using System.Net.Http.Json
+
+<h3>Register</h3>
+
+<input @bind="email" placeholder="Email" />
+<input @bind="password" placeholder="Password" type="password" />
+<button @onclick="TRegister">Register</button>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@code
+ {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string message = string.Empty;
+
+    private async Task TRegister()
+    {
+        var client = new HttpClient { BaseAddress = new Uri("https://localhost:5001/") };
+        var res = await client.PostAsJsonAsync("api/auth/register", new { Email = email, Password = password });
+        if (res.IsSuccessStatusCode)
+        {
+            var auth = await res.Content.ReadFromJsonAsync<AuthResponse>();
+            message = $"Registered. Token: {auth?.Token}";
+        }
+        else
+        {
+            message = $"Failed: {res.StatusCode}";
+        }
+    }
+
+    private class AuthResponse { public string Token { get; set; } = string.Empty; }
+}

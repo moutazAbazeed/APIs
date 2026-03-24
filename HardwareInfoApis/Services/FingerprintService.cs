@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace HardwareInfoApis.Api.Services
@@ -16,6 +17,7 @@ namespace HardwareInfoApis.Api.Services
     public class FingerprintService : IFingerprintService
     {
         private readonly ILogger<FingerprintService> _logger;
+        private static readonly Regex Hex64Regex = new("^[0-9a-fA-F]{64}$", RegexOptions.Compiled);
 
         public FingerprintService(ILogger<FingerprintService> logger)
         {
@@ -27,18 +29,14 @@ namespace HardwareInfoApis.Api.Services
             if (string.IsNullOrWhiteSpace(fingerprint))
                 return false;
 
-            // SHA256 hash = 64 hex characters
-            if (fingerprint.Length != 64)
-                return false;
+            fingerprint = fingerprint.Trim();
 
-            // Check all characters are hex
-            foreach (var c in fingerprint)
-            {
-                if (!char.IsDigit(c) && !(c >= 'a' && c <= 'f'))
-                    return false;
-            }
+            // Use a compiled regex to validate 64 hex chars (allow upper or lower case)
+            var valid = Hex64Regex.IsMatch(fingerprint);
+            if (!valid)
+                _logger.LogDebug("Invalid fingerprint format: {FingerprintLength} chars", fingerprint.Length);
 
-            return true;
+            return valid;
         }
 
         public string NormalizeFingerprint(string fingerprint)
@@ -46,7 +44,7 @@ namespace HardwareInfoApis.Api.Services
             if (string.IsNullOrWhiteSpace(fingerprint))
                 return string.Empty;
 
-            // Convert to lowercase for consistency
+            // Trim and convert to lowercase for a canonical representation
             return fingerprint.Trim().ToLowerInvariant();
         }
 
@@ -55,20 +53,27 @@ namespace HardwareInfoApis.Api.Services
             if (hardware == null)
                 return Task.FromResult(string.Empty);
 
-            // Recreate the same fingerprint logic as the client
+            // Build deterministic component string using safe accessors
+            string cpuId = hardware.Processor?.ProcessorId ?? string.Empty;
+            string cpuModel = hardware.Processor?.Model ?? string.Empty;
+            string bios = hardware.Bios?.SerialNumber ?? string.Empty;
+            string disk = hardware.Storage?.PrimaryDiskSerial ?? string.Empty;
+            string ram = hardware.Memory != null ? hardware.Memory.TotalPhysicalBytes.ToString() : string.Empty;
+            string diskSize = hardware.Storage != null ? hardware.Storage.TotalDiskBytes.ToString() : string.Empty;
+
             var components = string.Join("|",
-                $"CPU:{hardware.Processor?.ProcessorId}",
-                $"MODEL:{hardware.Processor?.Model}",
-                $"BIOS:{hardware.Bios?.SerialNumber}",
-                $"DISK:{hardware.Storage?.PrimaryDiskSerial}",
-                $"RAM:{hardware.Memory?.TotalPhysicalBytes}",
-                $"DISK_SIZE:{hardware.Storage?.TotalDiskBytes}"
+                $"CPU:{cpuId}",
+                $"MODEL:{cpuModel}",
+                $"BIOS:{bios}",
+                $"DISK:{disk}",
+                $"RAM:{ram}",
+                $"DISK_SIZE:{diskSize}"
             );
 
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(components));
 
-            var sb = new StringBuilder();
+            var sb = new StringBuilder(64);
             foreach (var b in bytes)
                 sb.Append(b.ToString("x2"));
 

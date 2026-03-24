@@ -2,6 +2,7 @@
 using HardwareInfoApis.Api.Middleware;
 using HardwareInfoApis.Api.Services;
 using HardwareInfoApis.Api.Services.Interfaces;
+using HardwareInfoApis.Authorization;
 using HardwareInfoApis.Middleware;
 using HardwareInfoApis.Services;
 using HardwareInfoApis.Services.Interfaces;
@@ -13,6 +14,18 @@ using System.Threading.RateLimiting;
 ;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Bind JWT settings if present
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtSettings = jwtSection.Exists() ? jwtSection.Get<JwtSettings>() : new JwtSettings();
+if (!string.IsNullOrWhiteSpace(jwtSettings.SigningKey))
+{
+    builder.Services.AddJwtAuthentication(jwtSettings);
+}
+
+// Ensure MVC discovers controllers from the Authorization class library
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(HardwareInfoApis.Authorization.Controllers.AuthController).Assembly);
 
 // 🔹 Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -131,9 +144,27 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", timestamp =
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
     if (app.Environment.IsDevelopment())
     {
-        db.Database.Migrate();
+        try
+        {
+            // Only attempt migrate when a connection string is configured
+            var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(conn))
+            {
+                logger?.LogWarning("DefaultConnection not configured - skipping database migration.");
+            }
+            else
+            {
+                db.Database.Migrate();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log and continue - do not crash the app during serve
+            logger?.LogError(ex, "Database migration failed on startup. Continuing without migration.");
+        }
     }
 }
 

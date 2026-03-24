@@ -1,0 +1,724 @@
+openapi: 3.0.4
+info:
+  title: Reports API
+  description: Device registration and license management API
+  contact:
+    name: Support
+    email: support@yourcompany.com
+  version: v1
+paths:
+  /api/Devices/check:
+    post:
+      tags:
+        - Devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckDeviceRequest'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/CheckDeviceRequest'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/CheckDeviceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckDeviceResponseApiResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectApiResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectApiResponse'
+  /api/Devices/register:
+    post:
+      tags:
+        - Devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterDeviceResponseApiResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectApiResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectApiResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectApiResponse'
+  '/api/Devices/{id}':
+    get:
+      tags:
+        - Devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceDtoApiResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  '/api/Devices/{id}/heartbeat':
+    post:
+      tags:
+        - Devices
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /api/health:
+    get:
+      tags:
+        - 'HardwareInfoApis, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    BiosInfo:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        manufacturer:
+          type: string
+          nullable: true
+        releaseDate:
+          type: string
+          nullable: true
+      additionalProperties: false
+    CheckDeviceRequest:
+      required:
+        - appVersion
+        - deviceFingerprint
+      type: object
+      properties:
+        deviceFingerprint:
+          maxLength: 64
+          minLength: 64
+          pattern: '^[a-f0-9]{64}$'
+          type: string
+        appVersion:
+          maxLength: 50
+          minLength: 1
+          type: string
+        licenseKey:
+          maxLength: 100
+          type: string
+          nullable: true
+        userId:
+          type: string
+          nullable: true
+        clientTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+        platform:
+          type: string
+          nullable: true
+        platformVersion:
+          maxLength: 50
+          type: string
+          nullable: true
+        apiKey:
+          maxLength: 100
+          type: string
+          nullable: true
+        includeHardwareComparison:
+          type: boolean
+        updateLastSeen:
+          type: boolean
+        requestId:
+          type: string
+          nullable: true
+        metadata:
+          nullable: true
+      additionalProperties: false
+    CheckDeviceResponse:
+      type: object
+      properties:
+        isRegistered:
+          type: boolean
+        deviceId:
+          type: string
+          nullable: true
+        deviceFingerprint:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        registrationDate:
+          type: string
+          format: date-time
+          nullable: true
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        deviceStatus:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        isBlocked:
+          type: boolean
+        blockReason:
+          type: string
+          nullable: true
+        licenseStatus:
+          type: string
+          nullable: true
+        licenseKey:
+          type: string
+          nullable: true
+        licenseType:
+          type: string
+          nullable: true
+        licenseExpiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        daysUntilExpiry:
+          type: integer
+          format: int32
+          nullable: true
+          readOnly: true
+        isInGracePeriod:
+          type: boolean
+        gracePeriodEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        requiresHeartbeat:
+          type: boolean
+        heartbeatIntervalMinutes:
+          type: integer
+          format: int32
+        hardwareChanged:
+          type: boolean
+        requiresUpdate:
+          type: boolean
+        minimumAppVersion:
+          type: string
+          nullable: true
+        latestAppVersion:
+          type: string
+          nullable: true
+        updateUrl:
+          type: string
+          nullable: true
+        actions:
+          type: array
+          items:
+            type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        warnings:
+          type: array
+          items:
+            type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        apiVersion:
+          type: string
+          nullable: true
+        requestId:
+          type: string
+          nullable: true
+        metadata:
+          nullable: true
+      additionalProperties: false
+    CheckDeviceResponseApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/CheckDeviceResponse'
+        errorCode:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+      additionalProperties: false
+    DeviceDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        deviceFingerprint:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        registeredAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        licenseStatus:
+          type: string
+          nullable: true
+      additionalProperties: false
+    DeviceDtoApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/DeviceDto'
+        errorCode:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+      additionalProperties: false
+    DeviceHardwareInfo:
+      type: object
+      properties:
+        recordId:
+          type: string
+          format: uuid
+        collectedAt:
+          type: string
+          format: date-time
+        collectorApp:
+          type: string
+          nullable: true
+        processor:
+          $ref: '#/components/schemas/ProcessorInfo'
+        memory:
+          $ref: '#/components/schemas/MemoryInfo'
+        bios:
+          $ref: '#/components/schemas/BiosInfo'
+        storage:
+          $ref: '#/components/schemas/StorageInfo'
+        operatingSystem:
+          $ref: '#/components/schemas/OsInfo'
+        deviceFingerprint:
+          type: string
+          nullable: true
+      additionalProperties: false
+    DiskDriveInfo:
+      type: object
+      properties:
+        model:
+          type: string
+          nullable: true
+        serialNumber:
+          type: string
+          nullable: true
+        sizeBytes:
+          type: integer
+          format: int64
+        mediaType:
+          type: string
+          nullable: true
+        interface:
+          type: string
+          nullable: true
+        diskType:
+          type: string
+          nullable: true
+      additionalProperties: false
+    HeartbeatRequest:
+      type: object
+      properties:
+        appVersion:
+          type: string
+          nullable: true
+      additionalProperties: false
+    MemoryInfo:
+      type: object
+      properties:
+        totalPhysicalRam:
+          type: string
+          nullable: true
+        totalPhysicalBytes:
+          type: integer
+          format: int64
+        availableBytes:
+          type: integer
+          format: int64
+        memoryType:
+          type: string
+          nullable: true
+        memorySpeed:
+          type: string
+          nullable: true
+        formFactor:
+          type: string
+          nullable: true
+        memorySticks:
+          type: integer
+          format: int32
+        memoryModules:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemoryModuleInfo'
+          nullable: true
+      additionalProperties: false
+    MemoryModuleInfo:
+      type: object
+      properties:
+        manufacturer:
+          type: string
+          nullable: true
+        partNumber:
+          type: string
+          nullable: true
+        serialNumber:
+          type: string
+          nullable: true
+        capacity:
+          type: string
+          nullable: true
+        capacityBytes:
+          type: integer
+          format: int64
+        speed:
+          type: string
+          nullable: true
+        memoryType:
+          type: string
+          nullable: true
+        formFactor:
+          type: string
+          nullable: true
+        bankLabel:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ObjectApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        data:
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+      additionalProperties: false
+    OsInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        buildNumber:
+          type: string
+          nullable: true
+        installDate:
+          type: string
+          nullable: true
+        machineName:
+          type: string
+          nullable: true
+        userName:
+          type: string
+          nullable: true
+        is64Bit:
+          type: boolean
+        userDomain:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        status:
+          type: integer
+          format: int32
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        instance:
+          type: string
+          nullable: true
+      additionalProperties: { }
+    ProcessorInfo:
+      type: object
+      properties:
+        processorId:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        coreCount:
+          type: integer
+          format: int32
+        architecture:
+          type: string
+          nullable: true
+      additionalProperties: false
+    RegisterDeviceRequest:
+      required:
+        - appVersion
+        - deviceFingerprint
+        - hardwareInfo
+      type: object
+      properties:
+        deviceFingerprint:
+          maxLength: 64
+          minLength: 64
+          pattern: '^[a-f0-9]{64}$'
+          type: string
+        hardwareInfo:
+          $ref: '#/components/schemas/DeviceHardwareInfo'
+        appVersion:
+          maxLength: 50
+          minLength: 1
+          type: string
+        licenseKey:
+          maxLength: 100
+          type: string
+          nullable: true
+        userId:
+          type: string
+          nullable: true
+        userEmail:
+          maxLength: 255
+          type: string
+          format: email
+          nullable: true
+        deviceName:
+          maxLength: 100
+          type: string
+          nullable: true
+        platform:
+          type: string
+          nullable: true
+        platformVersion:
+          maxLength: 50
+          type: string
+          nullable: true
+        clientTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+        apiKey:
+          maxLength: 100
+          type: string
+          nullable: true
+        metadata:
+          nullable: true
+        isRefresh:
+          type: boolean
+        requestId:
+          type: string
+          nullable: true
+      additionalProperties: false
+    RegisterDeviceResponse:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          nullable: true
+        deviceFingerprint:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        registrationDate:
+          type: string
+          format: date-time
+        licenseKey:
+          type: string
+          nullable: true
+        licenseExpiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        licenseType:
+          type: string
+          nullable: true
+        isNewRegistration:
+          type: boolean
+        deviceStatus:
+          type: string
+          nullable: true
+        daysUntilExpiry:
+          type: integer
+          format: int32
+          nullable: true
+          readOnly: true
+        requiresHeartbeat:
+          type: boolean
+        heartbeatIntervalMinutes:
+          type: integer
+          format: int32
+        timestamp:
+          type: string
+          format: date-time
+        apiVersion:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        actions:
+          type: array
+          items:
+            type: string
+          nullable: true
+        metadata:
+          nullable: true
+      additionalProperties: false
+    RegisterDeviceResponseApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/RegisterDeviceResponse'
+        errorCode:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+      additionalProperties: false
+    StorageInfo:
+      type: object
+      properties:
+        primaryDiskSerial:
+          type: string
+          nullable: true
+        primaryDiskModel:
+          type: string
+          nullable: true
+        primaryDiskType:
+          type: string
+          nullable: true
+        totalDiskSize:
+          type: string
+          nullable: true
+        totalDiskBytes:
+          type: integer
+          format: int64
+        allDisks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiskDriveInfo'
+          nullable: true
+      additionalProperties: false
+  securitySchemes:
+    Bearer:
+      type: http
+      description: 'Enter ''Bearer {your JWT token}'''
+      scheme: Bearer
+      bearerFormat: JWT
+security:
+  - Bearer: [ ]

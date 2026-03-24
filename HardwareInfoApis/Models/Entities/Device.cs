@@ -15,7 +15,6 @@ namespace HardwareInfoApis.Api.Models.Entities
 
         [Required]
         [MaxLength(64)]
-        [Key]
         public string DeviceFingerprint { get; set; } = string.Empty;
 
         [Required]
